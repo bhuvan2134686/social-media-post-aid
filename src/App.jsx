@@ -17,7 +17,7 @@ const fallbackPosts = (
   url,
   vibe,
   custom
-) => `You run a Facebook page at ${url}. Create 3 concise, high-energy captions for MLM style posts that feel ${vibe}. Blend in these notes: ${
+) => `You run a Facebook page at {facebookUrl}. Create 3 concise, high-energy captions for MLM style posts that feel ${vibe}. Blend in these notes: ${
   custom || 'consistent posting cadence, warm tone, soft CTA'
 }. Include hashtags.`;
 
@@ -30,11 +30,20 @@ function App() {
   const [error, setError] = useState('');
   const [posts, setPosts] = useState([]);
   const [tone, setTone] = useState('Uplifting & social-proof driven');
+  const [customPrompt, setCustomPrompt] = useState(null);
+  const [suggestedHashtags, setSuggestedHashtags] = useState(presetHashtags);
 
-  const prompt = useMemo(
+  const defaultPrompt = useMemo(
     () => fallbackPosts(facebookUrl, tone, `${persona}. CTA: ${cta}`),
     [facebookUrl, tone, persona, cta]
   );
+
+  // Use custom prompt if set, otherwise use the computed default
+  // Replace {facebookUrl} placeholder with actual URL if present
+  const prompt = useMemo(() => {
+    const basePrompt = customPrompt !== null ? customPrompt : defaultPrompt;
+    return basePrompt.replace(/\{facebookUrl\}/g, facebookUrl);
+  }, [customPrompt, defaultPrompt, facebookUrl]);
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -47,12 +56,39 @@ function App() {
         url: facebookUrl
       });
       setPosts(nextPosts);
+      
+      // Extract unique hashtags from all posts
+      const allHashtags = new Set();
+      nextPosts.forEach(post => {
+        if (post.hashtags && Array.isArray(post.hashtags)) {
+          post.hashtags.forEach(tag => allHashtags.add(tag));
+        }
+      });
+      // Include preset hashtags as fallback
+      presetHashtags.forEach(tag => allHashtags.add(tag));
+      setSuggestedHashtags(Array.from(allHashtags));
     } catch (err) {
       setError(err.message || 'Could not generate posts');
       setPosts([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAddHashtag = (postIndex, hashtag) => {
+    setPosts(prevPosts => {
+      const updated = [...prevPosts];
+      if (updated[postIndex]) {
+        const currentHashtags = updated[postIndex].hashtags || [];
+        if (!currentHashtags.includes(hashtag)) {
+          updated[postIndex] = {
+            ...updated[postIndex],
+            hashtags: [...currentHashtags, hashtag]
+          };
+        }
+      }
+      return updated;
+    });
   };
 
   return (
@@ -137,10 +173,35 @@ function App() {
         </div>
 
         <div>
-          <div className="label">Prompt we send the model</div>
-          <textarea className="input" value={prompt} readOnly />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <div className="label">Prompt we send the model</div>
+            {customPrompt !== null && (
+              <button
+                type="button"
+                onClick={() => setCustomPrompt(null)}
+                style={{
+                  fontSize: '12px',
+                  padding: '4px 8px',
+                  background: 'transparent',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  color: '#64748b'
+                }}
+              >
+                Reset to default
+              </button>
+            )}
+          </div>
+          <textarea
+            className="input"
+            value={prompt}
+            onChange={(e) => setCustomPrompt(e.target.value)}
+            placeholder="Enter your custom prompt..."
+            rows={4}
+          />
           <div className="small">
-            Want different formatting? Adjust the prompt above or edit the system prompt in
+            Edit the prompt directly above, or adjust the fields above to auto-generate it. Use <code>{'{facebookUrl}'}</code> as a placeholder for the Facebook URL. You can also edit the system prompt in
             <code> openai.js</code>.
           </div>
         </div>
@@ -178,9 +239,42 @@ function App() {
         <div className="section-title">
           <span>2</span> Suggested hashtags
         </div>
+        <div className="small" style={{ marginBottom: 8 }}>
+          Click any hashtag to add it to all posts. Hashtags are extracted from generated posts.
+        </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {presetHashtags.map((tag) => (
-            <span key={tag} className="badge">{tag}</span>
+          {suggestedHashtags.map((tag) => (
+            <button
+              key={tag}
+              type="button"
+              onClick={() => {
+                setPosts(prevPosts => 
+                  prevPosts.map(post => ({
+                    ...post,
+                    hashtags: post.hashtags?.includes(tag) 
+                      ? post.hashtags 
+                      : [...(post.hashtags || []), tag]
+                  }))
+                );
+              }}
+              className="badge"
+              style={{ 
+                cursor: 'pointer',
+                border: '1px solid #cbd5e1',
+                background: '#fff',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#f1f5f9';
+                e.target.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = '#fff';
+                e.target.style.transform = 'scale(1)';
+              }}
+            >
+              {tag}
+            </button>
           ))}
         </div>
       </div>
@@ -194,7 +288,23 @@ function App() {
         ) : null}
         <div className="grid" style={{ marginTop: 8 }}>
           {posts.map((post, index) => (
-            <PostCard key={index} post={post} presetHashtags={presetHashtags} />
+            <PostCard 
+              key={index} 
+              post={post} 
+              presetHashtags={presetHashtags}
+              onRemoveHashtag={(hashtag) => {
+                setPosts(prevPosts => {
+                  const updated = [...prevPosts];
+                  if (updated[index]) {
+                    updated[index] = {
+                      ...updated[index],
+                      hashtags: (updated[index].hashtags || []).filter(tag => tag !== hashtag)
+                    };
+                  }
+                  return updated;
+                });
+              }}
+            />
           ))}
         </div>
       </div>

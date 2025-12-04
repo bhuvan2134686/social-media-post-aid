@@ -6,7 +6,16 @@ const SYSTEM_PROMPT = `You are a social media ghostwriter specializing in MLM-fr
 
 function parseResponse(text, fallbackHashtags) {
   try {
-    const parsed = JSON.parse(text);
+    // Strip markdown code blocks if present (```json ... ```)
+    let cleanedText = text.trim();
+    if (cleanedText.startsWith('```')) {
+      // Remove opening ```json or ```
+      cleanedText = cleanedText.replace(/^```(?:json)?\s*\n?/, '');
+      // Remove closing ```
+      cleanedText = cleanedText.replace(/\n?```\s*$/, '');
+    }
+    
+    const parsed = JSON.parse(cleanedText);
     if (parsed && Array.isArray(parsed.posts)) {
       return parsed.posts.map((post, idx) => ({
         title: post.title || `Post idea ${idx + 1}`,
@@ -15,7 +24,8 @@ function parseResponse(text, fallbackHashtags) {
       }));
     }
   } catch (err) {
-    // fall through
+    console.error('Failed to parse response:', err);
+    console.error('Raw content:', text);
   }
   return [];
 }
@@ -49,7 +59,7 @@ export async function generatePostsWithOpenAI({ apiKey, prompt, fallbackHashtags
         { role: 'system', content: SYSTEM_PROMPT },
         {
           role: 'user',
-          content: `${prompt}\nUse the URL as context: ${url}. Return JSON only.`
+          content: `${prompt}\nReturn JSON only.`
         }
       ]
     })
@@ -62,6 +72,11 @@ export async function generatePostsWithOpenAI({ apiKey, prompt, fallbackHashtags
 
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content?.trim();
+  console.log('📥 Raw API response content:', content);
   const parsed = parseResponse(content, fallbackHashtags);
+  console.log('✅ Parsed posts:', parsed);
+  if (parsed.length === 0) {
+    console.warn('⚠️ No posts parsed, using fallback');
+  }
   return parsed.length > 0 ? parsed : buildFallbackPosts(prompt, fallbackHashtags);
 }
