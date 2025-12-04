@@ -31,3 +31,9 @@ A React single-page app that turns a Facebook profile or page URL into ready-to-
 - The app does not perform live scraping. It prompts a model based on your inputs.
 - `gpt-4o-mini` is selected to keep requests inexpensive and within free-tier allowances where available.
 - For production, secure your API key via server-side proxying instead of client-side entry.
+
+## OpenAI free model guidance
+- OpenAI does not offer unlimited free API usage; you need an API key with either a billing setup or any promotional credits tied to your account.
+- `gpt-4o-mini` is the lowest-cost chat model and is the one most often eligible for free-tier allowances or promo credits when they are available.
+- Higher-capability models such as `gpt-4o`, `o1`, or `o1-mini` typically require paid usage even if you have a small free allowance; swap the `model` value in `src/services/openai.js` only if you are comfortable with the potential cost.
+- Always check [OpenAI pricing](https://openai.com/api/pricing) to confirm what counts as free for your account before changing the model.
