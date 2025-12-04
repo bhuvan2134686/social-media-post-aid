@@ -34,14 +34,16 @@ export async function generatePostsWithOpenAI({ apiKey, prompt, fallbackHashtags
     return buildFallbackPosts(prompt, fallbackHashtags);
   }
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`
+      Authorization: `Bearer ${apiKey}`,
+      'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost',
+      'X-Title': 'Social Media Post Aid'
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'openai/gpt-oss-20b:free',
       temperature: 0.6,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
@@ -55,7 +57,7 @@ export async function generatePostsWithOpenAI({ apiKey, prompt, fallbackHashtags
 
   if (!response.ok) {
     const detail = await response.text();
-    throw new Error(detail || 'OpenAI request failed');
+    throw new Error(detail || 'OpenRouter request failed');
   }
 
   const data = await response.json();

@@ -23,7 +23,7 @@ const fallbackPosts = (
 
 function App() {
   const [facebookUrl, setFacebookUrl] = useState('https://www.facebook.com/example');
-  const [apiKey, setApiKey] = useState(() => import.meta.env.VITE_OPENAI_API_KEY || '');
+  const [apiKey, setApiKey] = useState(() => import.meta.env.VITE_OPENROUTER_API_KEY || '');
   const [persona, setPersona] = useState('Warm, collaborative, goal-driven');
   const [cta, setCta] = useState('Invite readers to DM “GO” to learn about the product drop.');
   const [loading, setLoading] = useState(false);
@@ -63,7 +63,7 @@ function App() {
           <h1 style={{ margin: '0 0 8px' }}>Social Media Post Aid</h1>
           <div className="small">
             Plug in a Facebook profile or page URL. We won’t scrape; we’ll shape a prompt and
-            use OpenAI&apos;s free hosted model (<code>gpt-4o-mini</code>) when you provide an API key.
+            call OpenRouter’s free hosted model (<code>openai/gpt-oss-20b:free</code>) when you provide an API key.
           </div>
         </div>
       </header>
@@ -73,7 +73,7 @@ function App() {
           <div>
             <strong>Ready for production?</strong>
             <div className="small">
-              Swap prompts, tone, or CTA; wire your OpenAI API key; or replace the generator in
+              Swap prompts, tone, or CTA; wire your OpenRouter API key; or replace the generator in
               <code> src/services/openai.js</code> for a custom model endpoint.
             </div>
           </div>
@@ -92,7 +92,7 @@ function App() {
             <div className="small">We do not scrape the URL—used only to anchor the prompt.</div>
           </div>
           <div>
-            <div className="label">OpenAI API key (optional for live generations)</div>
+            <div className="label">OpenRouter API key (optional for live generations)</div>
             <input
               className="input"
               value={apiKey}
@@ -100,7 +100,7 @@ function App() {
               placeholder="sk-..."
               type="password"
             />
-            <div className="small">Uses <code>gpt-4o-mini</code> so you can stay within free tiers.</div>
+            <div className="small">Targets <code>openai/gpt-oss-20b:free</code> to stay on a free allowance.</div>
           </div>
         </div>
 
